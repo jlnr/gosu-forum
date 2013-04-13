@@ -286,6 +286,7 @@ div.pst div.ccl {
 }
 div.pst div.ccl {
 	display: block;
+	overflow: visible;
 }
 
 /* Signature */
