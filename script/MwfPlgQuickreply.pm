@@ -84,6 +84,7 @@ EOSCRIPT
     "<div class='ccl'>\n",
     $showTags 
 		 ? $m->tagButtons() : "",
+    "<p>Use <code>`backticks`</code> to format code. You can attach files and embed images after posting.</p>\n",
     "<textarea name='body' cols='80' rows='4' id='qrtextarea'></textarea><br/>\n",
 		$showCaptcha && ($cfg->{captcha} >= 3 || $cfg->{captcha} >= 2 && !$m->{user}{id})
 		 ? MwfCaptcha::captchaInputs($m, 'pstCpt') : "",
@@ -117,7 +118,7 @@ sub postLink
 	# Language Things, here done.
 	if (!exists($lng->{qrClose})) {
 		if ($m->{lngModule} eq 'MwfGerman') {
-			$lng->{qrClose}      = "Schliessen";
+			$lng->{qrClose}      = "Schließen";
 			$lng->{qrButtonTtl}  = "Schnellantwort";
 			$lng->{qrButtonTT}   = "Schnell antworten";
 			$lng->{qrTitleBar}   = "Antwort auf Nachricht von";
