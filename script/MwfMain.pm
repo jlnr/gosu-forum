@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@ use 5.008001;
 use strict;
 use warnings;
 no warnings qw(uninitialized redefine once);
-our $VERSION = "2.29.1";
+our $VERSION = "2.29.6";
 
 #------------------------------------------------------------------------------
 
@@ -128,8 +128,10 @@ sub new
 	$m->authenticateUser();
 	$m->initUser();
 
-	# Call early include plugin	
-	$m->callPlugin($_) for @{$cfg->{includePlg}{early}};
+	# Call early include plugin
+	for my $plugin (@{$cfg->{includePlg}{early}}) {
+		$m->callPlugin($plugin);
+	}
 	
 	# Cron emulation
 	$m->cronEmulation();
@@ -246,7 +248,7 @@ sub initEnvironment
 		$env->{accept} = lc($hi->{'Accept'});
 		$env->{acceptLang} = lc($hi->{'Accept-Language'});
 		$env->{userAgent} = $hi->{'User-Agent'};
-		$env->{userIp} = lc($ap->connection->remote_ip());
+		$env->{userIp} = eval { $ap->connection->remote_ip() } || eval { $ap->useragent_ip() } || "";
 		$env->{userAuth} = $ap->user();
 		$env->{params} = $ap->args();
 		$env->{https} = $ap->subprocess_env()->{HTTPS} eq 'on' || $env->{port} == 443;
@@ -2051,7 +2053,9 @@ sub printHttpHeader
 	}
 
 	# Call include plugin
-	$m->callPlugin($_) for @{$cfg->{includePlg}{httpHeader}};
+	for my $plugin (@{$cfg->{includePlg}{httpHeader}}) {
+		$m->callPlugin($plugin);
+	}
 
 	# End HTTP header
 	if ($MP1) { $ap->send_http_header() }
@@ -2151,7 +2155,8 @@ sub printHeader
 	print "</style>\n";
 
 	# Include Javascript
-	my $autocomplete = $m->{autocomplete} && $userId && !$cfg->{noAutocomplete};
+	my $autocomplete = $m->{autocomplete} && !$cfg->{noAutocomplete} 
+		&& ($userId || $cfg->{userList} == 1);
 	$jsParams->{autocomplete} = $m->{autocomplete} if $autocomplete;
 	$jsParams->{m_ext} = $m->{ext};
 	$jsParams->{env_script} = $script;
@@ -2165,7 +2170,9 @@ sub printHeader
 	
 	# Print header includes
 	print $cfg->{htmlHeader}, "\n" if $cfg->{htmlHeader};
-	$m->callPlugin($_) for @{$cfg->{includePlg}{htmlHeader}};
+	for my $plugin (@{$cfg->{includePlg}{htmlHeader}}) {
+		$m->callPlugin($plugin);
+	}
 
 	# End head, start body
 	$title ||= $cfg->{forumName};
@@ -2176,7 +2183,9 @@ sub printHeader
 
 	# Print top includes
 	print $cfg->{htmlTop}, "\n\n" if $cfg->{htmlTop};
-	$m->callPlugin($_) for @{$cfg->{includePlg}{top}};
+	for my $plugin (@{$cfg->{includePlg}{top}}) {
+		$m->callPlugin($plugin);
+	}
 
 	# Print title image
 	my $topUrl = $m->url('forum_show');
@@ -2223,8 +2232,12 @@ sub printHeader
 	# Print plugin links
 	if ($cfg->{includePlg}{topUserLink}) {
 		my @userLinks;
-		$m->callPlugin($_, links => \@userLinks) for @{$cfg->{includePlg}{topUserLink}};
-		print $m->buttonLink($_->{url}, $_->{txt}, $_->{ico}) for @userLinks;
+		for my $plugin (@{$cfg->{includePlg}{topUserLink}}) {
+			$m->callPlugin($plugin, links => \@userLinks);
+		}
+		for my $link (@userLinks) {
+			print $m->buttonLink($link->{url}, $link->{txt}, $link->{ico});
+		}
 	}
 
 	# Print private messages link
@@ -2287,7 +2300,9 @@ sub printHeader
 		
 	# Print includes
 	print $cfg->{htmlMiddle}, "\n\n" if $cfg->{htmlMiddle};
-	$m->callPlugin($_) for @{$cfg->{includePlg}{middle}};
+	for my $plugin (@{$cfg->{includePlg}{middle}}) {
+		$m->callPlugin($plugin);
+	}
 
 	$m->{printPhase} = 2;
 }
@@ -2347,13 +2362,15 @@ sub printFooter
 
 	# Print copyright message
 	print
-		"<p class='cpr'>Powered by <a href='http://www.mwforum.org/'>mwForum</a>",
-		" $VERSION &#169; 1999-2013 Markus Wichitill</p>\n\n"
+		"<p class='cpr'>Powered by <a href='https://www.mwforum.org/'>mwForum</a>",
+		" $VERSION &#169; 1999-2015 Markus Wichitill</p>\n\n"
 		if $m->{env}{script} ne 'forum_info' && $m->{env}{script} ne 'attach_show';
 		
 	# Print includes
 	print $cfg->{htmlBottom}, "\n\n" if $cfg->{htmlBottom};
-	$m->callPlugin($_) for @{$cfg->{includePlg}{bottom}};
+	for my $plugin (@{$cfg->{includePlg}{bottom}}) {
+		$m->callPlugin($plugin);
+	}
 	
 	# Print page creation time
 	if ($m->{gcfg}{pageTime}) {
@@ -2545,9 +2562,10 @@ sub pageLinks
 		$pageNum - 1,
 		$pageNum);
 	my @pageLinks = ();
-	push @pageLinks, $_ == 0 ? { txt => "&#8230;" }
-		: { url => $m->url($script, @$params, pg => $_), txt => $_, dsb => $_ == $page }
-		for @pages;
+	for my $pg (@pages) {
+		push @pageLinks, $pg == 0 ? { txt => "&#8230;" }
+			: { url => $m->url($script, @$params, pg => $pg), txt => $pg, dsb => $pg == $page };
+	}
 
 	# Previous and next nav buttons
 	push @pageLinks, { url => $m->url($script, @$params, pg => $page - 1), 
@@ -2651,7 +2669,9 @@ sub tagButtons
 	}
 
 	# Call include plugin for additional buttons
-	$m->callPlugin($_, lines => \@lines) for @{$cfg->{includePlg}{tagButton}};
+	for my $plugin (@{$cfg->{includePlg}{tagButton}}) {
+		$m->callPlugin($plugin, lines => \@lines);
+	}
 
 	# Print text snippet list
 	if ($cfg->{textSnippets}) {
@@ -3047,7 +3067,9 @@ sub editToDb
 			my $close = $1; my $name = $2; my $attr = $3;
 			if ($pass == 1 && $name eq 'blockquote' && !$close && @stack) {
 				my $closeAll = "";
-				$closeAll .= "</$_>" while $_ = pop(@stack);
+				while (my $tag = pop(@stack)) {
+					$closeAll .= "</$tag>";
+				}
 				push @stack, $name;
 				"$closeAll<br/><$name>";
 			}
@@ -3059,7 +3081,9 @@ sub editToDb
 			}
 		%eg;
 		if ($pass == 1) {
-			$$body .= "</$_>" while $_ = pop(@stack);
+			while (my $tag = pop(@stack)) {
+				$$body .= "</$tag>";
+			}
 		}
 		elsif ($dropped || @stack) {
 			$$body =~ s!<!(!g;
@@ -3161,27 +3185,34 @@ sub dbToDisplay
 	}
 
 	# Embed videos
-	if ($cfg->{videoTag} && $embed && $filter) {
-		$$body =~ s%\[vid=(html|youtube|vimeo)\](.+?)\[/vid\]%
-			my $srv = lc($1);	my $id = $2;
-			if ($srv eq 'html' && $id =~ m!^https?://[^\s\\\[\]{}<>)|^`'"]+\z!) {
-				"<video src='$id' controls><p>$lng->{errUAFeatSup}</p></video>"
+	if ($cfg->{videoTag} && $filter) {
+		$$body =~ s%\[vid=(youtube|vimeo|html|vgf)\](.+?)\[/vid\]%
+			my $type = lc($1);	
+			my $id = $2;
+			if ($type eq 'youtube' && $id =~ /^[A-Za-z_0-9-]+\z/) { 
+				$embed 
+					? "<iframe class='vif' src='//www.youtube-nocookie.com/embed/$id?rel=0' width='640' height='385' allowfullscreen></iframe>"
+					: "[<a href='https://www.youtube.com/watch?v=$id'>YouTube</a>]"
 			}
-			elsif (($srv eq 'youtube' || $srv eq 'vimeo') && $id =~ /^[A-Za-z_0-9-]+\z/) {
-				$srv eq 'youtube' 
-					?	"<iframe class='vif' width='640' height='385' src='//www.youtube-nocookie.com/embed/$id?rel=0'"
-					. " allowfullscreen></iframe>"
-					: "<iframe class='vif' width='640' height='360' src='//player.vimeo.com/video/$id'"
-					. " allowfullscreen></iframe>"
+			elsif ($type eq 'vimeo' && $id =~ /^[A-Za-z_0-9-]+\z/) { 
+				$embed
+					? "<iframe class='vif' src='//player.vimeo.com/video/$id' width='640' height='360' allowfullscreen></iframe>"
+					: "[<a href='http://vimeo.com/$id'>Vimeo</a>]" 
 			} 
-			else { "[vid=$srv]${id}[/vid]" }
+			elsif ($type eq 'html' && $id =~ m!^https?://[^\s\\\[\]{}<>)|^`'"]+\z!) {
+				$embed
+					? "<video class='vht' src='$id' controls></video>"
+					: "[<a href='$id'>$lng->{tbbVideo}</a>]"
+			}
+			elsif ($type eq 'vgf' && $id =~ m!^https?://[^\s\\\[\]{}<>)|^`'"]+\z!) {
+				$embed
+					? "<video class='vgf' src='$id' muted autoplay loop controls></video>"
+					: "[<a href='$id'>$lng->{tbbVideo}</a>]"
+			}
+			else { 
+				"[vid=$type]${id}[/vid]" 
+			}
 		%egi;
-	}
-	elsif ($cfg->{videoTag} && $filter) {
-		$$body =~ s!\[vid=(youtube|vimeo)\]([A-Za-z_0-9-]+)\[/vid\]!
-			if (lc($1) eq 'youtube') { "[<a href='https://www.youtube.com/watch?v=$2'>YouTube</a>]" }
-			else { "[<a href='http://vimeo.com/$2'>Vimeo</a>]" }
-		!egi;
 	}
 
 	# Append attachments
@@ -3332,7 +3363,7 @@ sub dbConnect
 			"dbi:Pg:dbname=$cfg->{dbName};host=$cfg->{dbServer};$cfg->{dbParam}",
 			$cfg->{dbUser}, $cfg->{dbPassword}, 
 			{ PrintError => 0, PrintWarn => 0, AutoCommit => 1,
-				pg_server_prepare => $cfg->{dbPrepare} || 0, pg_utf8_strings => 0 })
+				pg_server_prepare => $cfg->{dbPrepare} || 0, pg_enable_utf8 => 0 })
 			or $m->dbError();
 		$dbh->do("SET NAMES 'utf8'");
 		$dbh->do("SET search_path = $cfg->{dbSchema}, public") if $cfg->{dbSchema};
@@ -3345,10 +3376,8 @@ sub dbConnect
 			{ PrintError => 0, PrintWarn => 0, AutoCommit => 1 })
 			or $m->dbError();
 		$dbh->do("PRAGMA synchronous = " . ($cfg->{dbSync} || "OFF"));
+		$dbh->do("PRAGMA mmap_size = $cfg->{dbMMapSize}") if $cfg->{dbMMapSize};
 		$dbh->func(1000, 'busy_timeout');
-		$dbh->func('mwforum', sub { my $a = shift(); my $b = shift(); 
-			utf8::decode($a); utf8::decode($b); lc($a) cmp lc($b) }, 'create_collation')
-			if $cfg->{sqliteCollate};
 		$m->{sqlite} = 1;
 	}
 	else { 
@@ -3605,7 +3634,9 @@ sub dbDo
 	# Prepare query	
 	my $sth = $m->{dbh}->prepare($query) or $m->dbError();
 	if ($mwfPlaceholders && $m->{pgsql}) { 
-		$sth->bind_param(":$_", $values->{$_}) for @pgPlaceholders;
+		for my $placeholder (@pgPlaceholders) {
+			$sth->bind_param(":$placeholder", $values->{$placeholder});
+		}
 		@values = ();
 	}
 
@@ -3648,7 +3679,9 @@ sub fetchSth
 	# Prepare query
 	my $sth = $m->{dbh}->prepare($query) or $m->dbError();
 	if ($mwfPlaceholders && $m->{pgsql}) {
-		$sth->bind_param(":$_", $values->{$_}) for @pgPlaceholders;
+		for my $placeholder (@pgPlaceholders) {
+			$sth->bind_param(":$placeholder", $values->{$placeholder});
+		}
 		@values = ();
 	}
 
@@ -3865,9 +3898,11 @@ sub logAction
 
 	# Call event plugins
 	my $cfg = $m->{cfg};
-	$m->callPlugin($_, level => $level, entity => $entity, action => $action,
-		userId => $userId, boardId => $boardId, topicId => $topicId,
-		postId => $postId, extraId => $extraId, string => $string) for @{$cfg->{logPlg}};
+	for my $plugin (@{$cfg->{logPlg}}) {
+		$m->callPlugin($plugin, level => $level, entity => $entity, action => $action,
+			userId => $userId, boardId => $boardId, topicId => $topicId,
+			postId => $postId, extraId => $extraId, string => $string);
+	}
 
 	return if $userId == $cfg->{noLogUserId};
 	return if $level > $cfg->{logLevel};
@@ -3941,7 +3976,9 @@ sub deletePost
 		# Delete attachments
 		my $attachments = $m->fetchAllArray("
 			SELECT id FROM attachments WHERE postId = ?", $postId);
-		$m->deleteAttachment($_->[0]) for @$attachments;
+		for my $attachment (@$attachments) {
+			$m->deleteAttachment($attachment->[0]);
+		}
 
 		# Delete post likes and reports
 		$m->dbDo("
@@ -4011,7 +4048,9 @@ sub deleteTopic
 		# Delete post attachments
 		my $attachments = $m->fetchAllArray("
 			SELECT id FROM attachments WHERE postId IN (SELECT id FROM $tmp)");
-		$m->deleteAttachment($_->[0]) for @$attachments;
+		for my $attachment (@$attachments) {
+			$m->deleteAttachment($attachment->[0]);
+		}
 
 		# Delete post likes and reports
 		$m->dbDo("
@@ -4141,18 +4180,19 @@ sub notifyPost
 		if ($recvUser && $recvUser->{notify} && $recvUser->{id} != $postUserId && !$ignored
 			&& $m->boardVisible($board, $recvUser)) {
 			$m->addNote('pstAdd', $recvUser->{id}, 'notPstAdd', usrNam => $postUserName, pstUrl => $url);
-			$post->{subject} = $topic->{subject};
-			$m->dbToEmail({}, $post);
+			my $emailPost = { subject => $topic->{subject}, 
+				body => $post->{body}, rawBody => $post->{rawBody} };
+			$m->dbToEmail({}, $emailPost);
 			$lng = $m->setLanguage($recvUser->{language});
-			my $subject = "$lng->{rplEmailSbPf} $postUserName: $post->{subject}";
+			my $subject = "$lng->{rplEmailSbPf} $postUserName: $emailPost->{subject}";
 			my $body = $lng->{rplEmailT2} . "\n\n" . "-" x 70 . "\n\n"
 				. $lng->{subLink} . "$cfg->{baseUrl}$m->{env}{scriptUrlPath}/$url\n"
 				. $lng->{subBoard} . $board->{title} . "\n"
-				. $lng->{subTopic} . $post->{subject} . "\n"
+				. $lng->{subTopic} . $emailPost->{subject} . "\n"
 				. $lng->{subBy} . $postUserName . "\n"
 				. $lng->{subOn} . $m->formatTime($post->{postTime}, $recvUser->{timezone}) . "\n\n"
-				. $post->{body} . "\n\n"
-				. ($post->{rawBody} ? $post->{rawBody} . "\n\n" : "")
+				. $emailPost->{body} . "\n\n"
+				. ($emailPost->{rawBody} ? $emailPost->{rawBody} . "\n\n" : "")
 				. "-" x 70 . "\n\n";
 			$lng = $m->setLanguage();
 			$m->sendEmail(user => $recvUser, subject => $subject, body => $body)
@@ -4234,6 +4274,7 @@ sub sendEmail
 
 	# Determine header values and encode where necessary
 	require MIME::QuotedPrint;
+	my $port = $cfg->{smtpPort} || 25;
 	my $from = $m->encWord($cfg->{forumName}) . " <$cfg->{forumEmail}>";
 	my $to = $params{user}{email};
 	my $subject = $m->encWord($params{subject});
@@ -4264,20 +4305,33 @@ sub sendEmail
 	if ($cfg->{mailer} eq 'SMTP') {
 		# Send via SMTP with Mail::Sendmail
 		require MwfSendmail;
-		MwfSendmail::sendmail(smtp => $cfg->{smtpServer}, From => $from, To => $to, 
-			Subject => $subject, Body => $body,
-			'Content-Type' => "text/plain; charset=utf-8", 'X-mwForum-BounceAuth' => $bounceAuth) 
+		MwfSendmail::sendmail(smtp => $cfg->{smtpServer}, port => $port,
+			from => $from, to => $to, subject => $subject, body => $body,
+			'Content-Type' => "text/plain; charset=utf-8", 'X-mwForum-BounceAuth' => $bounceAuth,
+			'X-Mailer' => "mwForum/$MwfMain::VERSION via MwfSendmail/$MwfSendmail::VERSION") 
 			or $m->logError("Send email: $MwfSendmail::error");
 	}
 	elsif ($cfg->{mailer} eq 'SMTP2') {
-		# Send via SMTP with Net::SMTP
+		# Send via SMTP with Net::SMTP(S)
 		require Net::SMTP;
+		my $module = 'Net::SMTP';
+		my @tls = ();
+		if (eval { require Net::SMTPS }) {
+			$module = 'Net::SMTPS';
+			@tls = (doSSL => $cfg->{smtpSslMode} || 'starttls');
+		}
 		$body = MIME::QuotedPrint::encode($body, "\n");
-		my $smtp = Net::SMTP->new(Host => $cfg->{smtpServer}, Timeout => 10, Debug => 0);
+		my $smtp = $module->new(Host => $cfg->{smtpServer}, Port => $port, 
+			Timeout => 10, Debug => 0, @tls);
 		my $data = "From: $from\n" . "To: $to\n" . "Subject: $subject\n" . 
 			"MIME-Version: 1.0\n" . "Content-Type: text/plain; charset=utf-8\n" . 
 			"Content-Transfer-Encoding: quoted-printable\n" . "X-mwForum-BounceAuth: $bounceAuth\n" .
+			"X-Mailer: mwForum/$MwfMain::VERSION via Net::SMTP/$Net::SMTP::VERSION\n" .
 			"\n" . $body;
+		if ($cfg->{esmtpUser}) {
+			$smtp->auth($cfg->{esmtpUser}, $cfg->{esmtpPassword}) 
+				or $m->logError("Send email: auth() failed."), return;
+		}
 		$smtp->mail($cfg->{forumEmail}) or $m->logError("Send email: mail() failed."), return;
 		$smtp->recipient($to) or $m->logError("Send email: recipient() failed."), return;
 		$smtp->data($data) or $m->logError("Send email: data() failed."), return;
@@ -4286,10 +4340,15 @@ sub sendEmail
 	elsif ($cfg->{mailer} eq 'ESMTP') {
 		# Send via ESMTP with Mail::Sender
 		eval { require Mail::Sender } or $m->error("Mail::Sender module not available.");
-		Mail::Sender->new()->MailMsg({ smtp => $cfg->{smtpServer}, from => $from, to => $to, 
-			subject => $subject, msg => $body, ctype => "text/plain", charset => "utf-8", 
-			encoding => "quoted-printable", auth => $cfg->{esmtpAuth}, authid => $cfg->{esmtpUser},
-			authpwd => $cfg->{esmtpPassword}, headers => "X-mwForum-BounceAuth: $bounceAuth" }) >= 0 
+		$Mail::Sender::NO_X_MAILER = 1;
+		my @auth = $cfg->{esmtpUser} ? (auth => $cfg->{esmtpAuthMech} || 'LOGIN', 
+			authid => $cfg->{esmtpUser}, authpwd => $cfg->{esmtpPassword}) : ();
+		Mail::Sender->new()->MailMsg({ smtp => $cfg->{smtpServer}, port => $port,
+			from => $from, to => $to, subject => $subject, msg => $body, 
+			ctype => "text/plain", charset => "utf-8", encoding => "quoted-printable",
+			headers => { 'X-mwForum-BounceAuth' => $bounceAuth,
+				'X-Mailer' => "mwForum/$MwfMain::VERSION via Mail::Sender/$Mail::Sender::VERSION"	},
+			@auth }) >= 0 
 			or $m->logError("Send email failed: $Mail::Sender::Error");
 	}
 	elsif ($cfg->{mailer} eq 'sendmail' || $cfg->{mailer} eq 'mail') {
@@ -4303,6 +4362,7 @@ sub sendEmail
 			"From: $from\n", "To: $to\n", "Subject: $subject\n",
 			"MIME-Version: 1.0\n", "Content-Type: text/plain; charset=utf-8\n",
 			"Content-Transfer-Encoding: quoted-printable\n", "X-mwForum-BounceAuth: $bounceAuth\n",
+			"X-Mailer: mwForum/$MwfMain::VERSION via sendmail\n",
 			"\n", $body;
 		close $pipe;
 	}

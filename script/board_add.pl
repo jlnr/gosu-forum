@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 
 # Check if user is admin
 $user->{admin} or $m->error('errNoAccess');
@@ -40,8 +40,7 @@ $firstCatId
 
 # Get position
 my $pos = $m->fetchArray("
-	SELECT MAX(pos) + 1 FROM boards WHERE categoryId = ?", $firstCatId);
-$pos ||= 1;
+	SELECT COALESCE(MAX(pos), 0) + 1 FROM boards WHERE categoryId = ?", $firstCatId);
 
 # Insert new board
 $m->dbDo("

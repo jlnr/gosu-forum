@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 
 # Print header
 $m->printHeader();
@@ -229,8 +229,8 @@ print
 	"<div class='frm'>\n",
 	"<div class='hcl'><span class='htt'>Forum Software</span></div>\n",
 	"<div class='ccl'>\n",
-	"<p>Powered by <a href='http://www.mwforum.org/'>mwForum</a>", 
-	" &#169; 1999-2013 Markus Wichitill</p>\n",
+	"<p>Powered by <a href='https://www.mwforum.org/'>mwForum</a>", 
+	" &#169; 1999-2015 Markus Wichitill</p>\n",
 	"<p>This program is free software; you can redistribute it and/or modify",
 	" it under the terms of the GNU General Public License as published by",
 	" the Free Software Foundation; either version 3 of the License, or",
@@ -280,9 +280,16 @@ elsif ($m->{sqlite}) {
 
 # Print webserver mini banner
 my $server = undef;
-if ($MwfMain::MP1) { $server = Apache::Constants::SERVER_VERSION() }
-elsif ($MwfMain::MP2) { $server = Apache2::ServerUtil::get_server_version() }
-else { $server = $ENV{SERVER_SOFTWARE} }
+if ($MwfMain::MP1) { 
+	$server = Apache::Constants::SERVER_VERSION();
+}
+elsif ($MwfMain::MP2) { 
+	$server = eval { Apache2::ServerUtil::get_server_description() } 
+		|| eval { Apache2::ServerUtil::get_server_version() };
+}
+else { 
+	$server = $ENV{SERVER_SOFTWARE};
+}
 my ($webserverVersion) = $server =~ /([0-9]+\.[0-9]+\.[0-9]+)/;
 if ($server =~ /Apache/) {
 	print

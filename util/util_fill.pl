@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -164,10 +164,14 @@ my @tables = qw(attachments boardAdminGroups boardHiddenFlags boardMemberGroups
 	topicReadTimes topics topicSubscriptions userBans userIgnores users 
 	userVariables variables watchUsers watchWords);
 if ($m->{mysql}) {
-	$dbh->do("ANALYZE TABLE $_") for @tables;
+	for my $table (@tables) {
+		$dbh->do("ANALYZE TABLE $table");
+	}
 }
 elsif ($m->{pgsql}) {
-	$dbh->do("VACUUM ANALYZE $_") for @tables;
+	for my $table (@tables) {
+		$dbh->do("VACUUM ANALYZE $table");
+	}
 }
 elsif ($m->{sqlite}) {
 	$dbh->do("ANALYZE");

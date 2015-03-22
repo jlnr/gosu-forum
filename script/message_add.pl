@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,19 +24,22 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_, autocomplete => 1, );
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0], autocomplete => 1);
 
 # Check if access should be denied
 $cfg->{messages} or $m->error('errNoAccess');
 $userId or $m->error('errNoAccess');
 
 # Load additional modules
-require MwfCaptcha if $cfg->{captcha};
+require MwfCaptcha if $cfg->{captcha} >= 3;
 
 # Check if user has been registered for long enough
 $m->{now} > $user->{regTime} + $cfg->{minRegTime}
 	or $m->error($m->formatStr($lng->{errMinRegTim}, { hours => $cfg->{minRegTime} / 3600 }))
 	if $cfg->{minRegTime};
+
+# Check authorization
+$m->checkAuthz($user, 'newMessage');
 
 # Get CGI parameters
 my $recvId = $m->paramInt('uid');
@@ -140,7 +143,7 @@ if ($add) {
 	length($body) <= $cfg->{maxBodyLen} or $m->formError('errBdyLen');
 	
 	# Translate text
-	my $msg = { isMessage => 1, subject => $subject, body => $body };
+	my $msg = { subject => $subject, body => $body };
 	$m->editToDb({}, $msg);
 	length($body) or $m->formError('errBdyEmpty');
 
@@ -151,6 +154,9 @@ if ($add) {
 	# If there's no error, finish action
 	if (!@{$m->{formErrors}}) {
 		my $msgId = undef;
+		my $emailMsg = { subject => $msg->{subject}, body => $msg->{body} };
+		$m->dbToEmail({}, $emailMsg);
+
 		for my $id (@recvIds) {
 			# Check if recipient ignores sender
 			my $ignored = $m->fetchArray("
@@ -172,15 +178,14 @@ if ($add) {
 			# Send notification email
 			my $recvUser = $m->getUser($id);
 			if ($recvUser->{msgNotify} && $recvUser->{email} && !$recvUser->{dontEmail}) {
-				$m->dbToEmail({}, $msg);
 				$lng = $m->setLanguage($recvUser->{language});
-				my $emailSubject = "$lng->{msaEmailSbPf} $user->{userName}: $msg->{subject}";
+				my $emailSubject = "$lng->{msaEmailSbPf} $user->{userName}: $emailMsg->{subject}";
 				my $emailBody = $lng->{msaEmailT2} . "\n\n" . "-" x 70 . "\n\n"
 					. $lng->{subLink} . "$cfg->{baseUrl}$m->{env}{scriptUrlPath}/$url\n"
-					. $lng->{msaEmailTSbj} . $msg->{subject} . "\n"
+					. $lng->{msaEmailTSbj} . $emailMsg->{subject} . "\n"
 					. $lng->{subBy} . $user->{userName} . "\n"
 					. $lng->{subOn} . $m->formatTime($m->{now}, $recvUser->{timezone}) . "\n\n"
-					. $msg->{body} . "\n\n"
+					. $emailMsg->{body} . "\n\n"
 					. "-" x 70 . "\n\n";
 				$lng = $m->setLanguage();
 				$m->sendEmail(user => $recvUser, subject => $emailSubject, body => $emailBody);
@@ -224,10 +229,11 @@ if (!$add || @{$m->{formErrors}}) {
 
 	# Prepare referenced message and preview body
 	$m->dbToDisplay({}, $refMsg) if $refMsg;
+	my $previewMsg = undef;
 	if ($preview) {
-		$preview = { isMessage => 1, body => $body };
-		$m->editToDb({}, $preview);
-		$m->dbToDisplay({}, $preview);
+		$previewMsg = { isMessage => 1, body => $body };
+		$m->editToDb({}, $previewMsg);
+		$m->dbToDisplay({}, $previewMsg);
 	}
 
 	# Escape submitted values
@@ -276,7 +282,7 @@ if (!$add || @{$m->{formErrors}}) {
 		"<div class='frm'>\n",
 		"<div class='hcl'><span class='htt'>$lng->{msaPrvTtl}</span></div>\n",
 		"<div class='ccl'>\n",
-		$preview->{body}, "\n",
+		$previewMsg->{body}, "\n",
 		"</div>\n",
 		"</div>\n\n"
 		if $preview;

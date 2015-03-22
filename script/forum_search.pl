@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_, autocomplete => 1);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0], autocomplete => 1);
 $m->cacheUserStatus() if $userId;
 
 # Check if search is enabled
@@ -51,10 +51,8 @@ my $order = $m->paramStrId('order') || 'desc';
 my $submitted = $m->paramDefined('words') || $searchUserId || $userName;
 
 # Check HTTP method and request source authentication
-if ($cfg->{blockExtSearch} && $submitted && length($words)) {
-	$m->{env}{method} eq 'POST' || $m->paramDefined('pg') or $m->error('errSearchLnk');
-	$m->checkSourceAuth() or $m->error('errNoAccess') if $cfg->{forumSearch} == 2;
-}
+$m->{env}{method} eq 'POST' || $m->paramDefined('pg') or $m->error('errSearchLnk')
+	if $cfg->{blockExtSearch} && length($words);
 
 # Get userName if only userId was specified
 $userName = $m->fetchArray("
@@ -189,9 +187,9 @@ if ($submitted && !($wordsChanged && !$words)) {
 	my @wordValues = ();
 	if ($mysqlFts && $words) {
 		# Search with MySQL fulltext search
-		for (@words) { 
-			$_ = "$_*" if !/^"/;
-			$_ = "+$_" if !/^-/;
+		for my $wrd (@words) { 
+			$wrd = "$wrd*" if $wrd !~ /^"/;
+			$wrd = "+$wrd" if $wrd !~ /^-/;
 		}
 		$wordStr = "AND (MATCH posts.body AGAINST (:word0 IN BOOLEAN MODE))";
 		push @wordValues, "word0" => join(" ", @words);
@@ -354,7 +352,6 @@ if ($cfg->{forumSearch} == 1 || $cfg->{forumSearch} == 2 && $userId || $user->{a
 		$m->submitButton('seaB', 'search'),
 		"</div>\n",
 		$m->{archive} ? "<input type='hidden' name='arc' value='1'>\n" : "",
-		$cfg->{blockExtSearch} ? "<input type='hidden' name='auth' value='$user->{sourceAuth}'>\n" : "",
 		"</div>\n",
 		"</div>\n",
 		"</form>\n\n";

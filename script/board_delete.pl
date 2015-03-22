@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 
 # Check if user is admin
 $user->{admin} or $m->error('errNoAccess');
@@ -55,7 +55,9 @@ $m->dbDo("
 # Delete topics
 my $topics = $m->fetchAllArray("
 	SELECT id FROM topics WHERE boardId = ?", $boardId);
-$m->deleteTopic($_->[0]) for @$topics;
+for my $topic (@$topics) {
+	$m->deleteTopic($topic->[0]);
+}
 
 # Delete board
 $m->dbDo("

@@ -36,7 +36,7 @@
 <li><a href='#multi'>Multi-Forums</a></li>
 <li><a href='#polls'>Polls</a></li>
 <li><a href='#avatars'>Avatars</a></li>
-<li><a href='#smtpauth'>SMTP Authentication</a></li>
+<li><a href='#smtp'>SMTP</a></li>
 <li><a href='#bounces'>Bounced Emails</a></li>
 <li><a href='#openpgp'>OpenPGP Emails</a></li>
 <li><a href='#massmail'>Mass-Emailing</a></li>
@@ -160,7 +160,7 @@ shell&gt; chmod 777 /usr/local/apache/htdocs/mwf/attach
 
 <h3>Notes</h3>
 
-<p>String comparisons are case-sensitive in SQLite, which means that for example usernames have to be spelled with the correct case wherever usernames need to be typed in. If you put the option "<code>$cfg-&gt;{sqliteCollate} = 1;</code>" into your MwfConfig.pm before running install.pl, mwForum provides a custom function to SQLite that makes comparisons and ordering case-insensitive. This requires at least DBD::SQLite 1.20, has a performance impact and has the additional disadvantage of making many queries on the database outside of mwForum impossible.</p>
+<p>String comparisons are case-sensitive in SQLite, which means that for example usernames have to be spelled with the correct case wherever usernames need to be typed in.</p>
 
 <p>Substring searching with the LIKE operator, used for e.g. the forum search, is also case-sensitive for non-ASCII characters, which can be a real problem for non-English languages. If you enable the <var>sqliteLike</var> forum option, the forum provides a custom function to SQLite that makes forum search and user admin page search case-insensitive, but has a serious performance impact.</p>     
 
@@ -342,11 +342,11 @@ sql&gt; ORDER BY log.logTime;
 
 <h2 id='search'>Indexed Search</h2>
 
-<p>mwForum's indexed search mode uses <a href='http://dev.mysql.com/doc/mysql/en/fulltext-search.html'>MySQL's Boolean Full-Text Search</a> or <a href='http://www.postgresql.org/docs/9.0/static/textsearch.html'>PostgreSQL's Full Text Search</a> feature to speed up searching compared to the normal search mode. More details can be found in the linked MySQL/PgSQL documentation.</p>
+<p>mwForum's indexed search mode uses <a href='http://dev.mysql.com/doc/mysql/en/fulltext-search.html'>MySQL's Boolean Full-Text Search</a> or <a href='http://www.postgresql.org/docs/9.4/static/textsearch.html'>PostgreSQL's Full Text Search</a> feature to speed up searching compared to the normal search mode. More details can be found in the linked MySQL/PgSQL documentation.</p>
 
 <h3>MySQL</h3>
 
-<p>As of MySQL 5.5, Full-Text Search can only be used with the MyISAM and Aria engines. Starting with 5.6, InnoDB may also be supported.</p>
+<p>Up to MySQL 5.5, Full-Text Search can only be used with the MyISAM and Aria storage engines. Starting with MySQL 5.6 and MariaDB 10, InnoDB is also supported.</p>
 
 <p>Activate the indexed search mode with the <var>advSearch</var> forum option. The SQL commands for creating and removing full-text indexes for post bodies are:</p>
 
@@ -365,11 +365,11 @@ mysql&gt; DROP INDEX posts_body ON posts;
 
 <p>There are various limitations, some of which lie in the nature of full-text indexes, some in MySQL's implementation. It only works for word-like strings, not any random strings with special characters etc. It's therefore not ideal for forums where people often search for technical expressions, like programming or Web design forums. It will only find words that start with the typed characters, not words that have those characters in the middle or end.</p>
 
-<p>For those familiar with mwForum's previous advanced search mode or MySQL's boolean search operators: in mwForum 2.7.3, indexed search mode replaced the advanced search mode, since the latter required explicit use of + and * operators to get useful results, which was too complicated for most users, and inconvenient even for experienced users. mwForum now automatically prefixes all words and quoted phrases with + operators, and postfixes all words with * operators. It removes all special characters outside of quoted phrases, except for the - prefix operator, which is passed on to MySQL. Users will see the stripped search string in the input field, which should hopefully tell them something about what kind of strings MySQL can't find anyway. Advanced users can't manually use any additional operators like &lt;&gt;~() anymore, but those are seldomly useful anyway.</p>
+<p>For those familiar with mwForum's previous advanced search mode or MySQL's boolean search operators: in mwForum 2.7.3, indexed search mode replaced the advanced search mode, since the latter required explicit use of + and * operators to get useful results, which was too complicated for most users, and inconvenient even for experienced users. mwForum now automatically prefixes all words and quoted phrases with + operators, and postfixes all words with * operators. It removes all special characters outside of quoted phrases, except for the - prefix operator, which is passed on to MySQL. Users will see the stripped search string in the input field, which should hopefully tell them something about what kind of strings MySQL can't find anyway. Advanced users can't manually use any additional operators like &lt;&gt;~() anymore, but those are rarely useful anyway.</p>
 
 <h3>PostgreSQL</h3>
 
-<p>PostgreSQL's Full Text Search is more advanced than MySQL's. The main advantage worth mentioning here is the built-in support for word stemming in various languages. Some reading of the PostgreSQL documentation linked above is recommended. At a minimum, read about the available "configurations", and choose one ("english" is used below as an example).</p>
+<p>PostgreSQL's Full Text Search is more advanced than MySQL's. The main advantage worth mentioning here is the built-in support for word stemming in various languages. Some reading of the PostgreSQL documentation linked above is recommended. At a minimum, read about the available "configurations", and choose one ("english" is used as the default).</p>
 
 <p>Activate the indexed search mode with the <var>advSearch</var> forum option. The SQL commands for creating and removing full-text indexes for post bodies are:</p>
 
@@ -378,13 +378,13 @@ psql&gt; CREATE INDEX posts_body ON posts USING gin(to_tsvector('<i>english</i>'
 psql&gt; DROP INDEX posts_body;
 </kbd></pre>
 
-<p>Put the name of the chosen configuration into <var>$cfg-&gt;{pgFtsConfig}</var> in MwfConfig.pm if it's different from "english". Make sure the configuration name is the same as during index creation, or the index won't be used.</p>
+<p>Put the name of the chosen configuration into <var>$cfg-&gt;{pgFtsConfig}</var> in MwfConfig.pm if it's different from the default "english". Make sure the configuration name is the same as during index creation, or the index won't be used by PostgreSQL.</p>
 
 <p>The typed search expression is parsed with <code>plainto_tsquery()</code>, which doesn't support any operators. If the whole expression is placed in quotes though, mwForum will make an additional filter pass which removes any results that don't contain the exact (but case-independent) expression.</p>
 
 <h3>Notes for both DBMS</h3>
 
-<p>The search expression used internally (the input stripped of special characters and stopwords, with words stemmed in the case of PostgreSQL) is shown in an info box below the search form, unless it is identical to the input. Both words from the input and this expression are highlighted in the found posts. mwForum doesn't highlight exactly the same words that the DBMS have actually found, since they don't give us that information.</p>
+<p>The search expression used internally (the input stripped of special characters and stopwords, with words stemmed in the case of PostgreSQL) is shown in an info box below the search form, unless it is identical to the input. Words from both the input and this expression are highlighted in the found posts. mwForum doesn't highlight exactly the same words that the DBMS have actually found, since they don't give us that information.</p>
 
 <p>Indexed search is only used for normal post bodies. Raw post bodies and topic subjects are searched with the standard LIKE-based method. In the case of raw post bodies, this makes it possible to find "technical" content that couldn't be found easily or at all with full-text search geared towards human language.</p>
 
@@ -478,6 +478,9 @@ push @$options, {
 <dt>attachImgRszQ</dt>
 <dd>JPEG quality of thumbnails for resized images. <code>1</code> = min. quality, <code>100</code> = max. quality. Default is <code>80</code>.</dd>
 
+<dt>attachImgDef</dt>
+<dd>Set to <code>1</code> to embed attached images by default.</dd>
+
 <dt>noGd, noImager, noGMagick, noIMagick</dt>
 <dd>Set either to <code>1</code> to disable the use of the GD, Imager, Graphics::Magick or Image::Magick Perl modules, e.g. for debugging purposes or if an installed module version is buggy. Normally, mwForum will try to use the listed modules in that order.</dd>
 
@@ -488,7 +491,7 @@ push @$options, {
 <dd>Caching mode of Geo::IP module, GEOIP_STANDARD = <code>0</code>, GEOIP_MEMORY_CACHE = <code>1</code>, GEOIP_INDEX_CACHE = <code>4</code>, GEOIP_MMAP_CACHE = <code>8</code>. You have to specify the number, as the constants are unavailable. Some modes may fail without a useful error message. Default is GEOIP_MEMORY_CACHE.</dd>
 
 <dt>uaGraphType</dt>
-<dd>"<code>none</code>" = hide the pie charts on the user agent statistics page. "<code>GD::Graph</code>" = use that Perl module to generate images. "<code>Imager::Graph</code>" = use that module to generate images. Both these methods include their output inline as data URLs and require a readable font configured with the <var>ttf</var> option below. "<code>GoogleVis</code>" = use the <a href='http://code.google.com/apis/visualization/'>Google Visualization API</a> (<a href='http://code.google.com/apis/visualization/terms.html'>Terms of Use</a>) to generate SVG (VML for MSIE) pie charts with Javascript. "<code>GoogleChart</code>" (the default) = use the <a href='http://code.google.com/apis/chart/'>Google Chart API</a> (<a href='http://code.google.com/apis/chart/terms.html'>Terms of Use</a>) to generate PNG images. Neither Google-provided method requires any Perl modules and both also work in outdated browsers. They do however include Javascript resp. images from Google's servers, which may not be acceptable for security reasons.</dd>
+<dd>Method of showing pie charts on the browser (user agent) statistics page. "<code>none</code>" = disable pie charts. "<code>GD::Graph</code>" = use that Perl module to generate images. "<code>Imager::Graph</code>" = use that module to generate images. Both these methods include their output inline as data URLs and require a readable font configured with the <var>ttf</var> option below. "<code>GoogleVis</code>" (the default) = use the <a href='https://developers.google.com/chart/'>Google Chart API</a> (<a href='https://developers.google.com/chart/terms'>Terms of Use</a>) to generate SVG pie charts with Javascript. This method doesn't require any Perl modules, but includes Javascript from Google, which may not be acceptable for security reasons.</dd>
 
 <dt>ttf</dt>
 <dd>Set to the filesystem path of a TrueType font file for any features that might require one and use this option (currently only the GD::Graph and Imager::Graph flavors of the chart feature above).</dd>
@@ -519,6 +522,12 @@ push @$options, {
 
 <dt>dbHideError</dt>
 <dd>Set to <code>1</code> to hide database error message details from normal users.</dd>
+
+<dt>noLogUserId</dt>
+<dd>Set to the numeric ID of a user whose requests you don't want to log in the forum log.</dd>
+
+<dt>noGuestCookies</dt>
+<dd>Set to <code>1</code> to disable the feature that lets not-logged-in people use the Mark Old button the set a prevOn cookie for new/old tracking. This is for legal reasons, in case you never want to give cookies to people who haven't agreed to a forum/privacy policy. Doesn't affect guests who already have the cookie.</dd>
 </dl>
 
 
@@ -746,22 +755,15 @@ shell&gt; perl util_replace.pl -x -f /forum2 replacethis withthis
 <p>The images won't be checked for type and size, but the displayed avatars will be zoomed to the same configured dimensions as the uploaded avatars, so you'd better stick to those dimensions, since images zoomed by the browser don't look all that great. There is also a script named util_resizeavatars.pl that scales all images in the gallery directory to the configured dimensions. It also requires the GD, Imager, Graphics::Magick or Image::Magick Perl modules.</p>
 
 
-<h2 id='smtpauth'>SMTP Authentication</h2>
+<h2 id='smtp'>SMTP</h2>
 
-<p>Some CGI hosts may require SMTP authentication if a web application wants to send email. Also, some people might want to host forums on their dialup connections, but use their ISP's email server, since some providers don't accept emails from dynamic IPs.</p>
+<p>Some webspace providers may require SMTP authentication if a web application wants to send email. Also, some people might want to host forums on their home connections, but use the SMTP server of an email provider where they have an account, since most recipient's email providers don't accept emails sent directly from dynamic/home IP addresses.</p>
 
-<p>mwForum supports SMTP authentication (<a href='http://www.faqs.org/rfcs/rfc2554.html'>RFC 2554</a>) with the PLAIN, LOGIN and CRAM-MD5 methods. The <a href='http://search.cpan.org/dist/Mail-Sender/'>Mail::Sender</a> Perl module is required and used instead of the other available mailers if authentication is to be used. The CRAM-MD5 method also requires <a href='http://search.cpan.org/dist/Digest-HMAC/'>Digest::HMAC_MD5</a>. If available, CRAM-MD5 should be used, as it's the only method that doesn't transmit the password unencrypted.</p>
+<p>mwForum supports SMTP authentication and SSL/TLS connection encryption when sending emails with the <a href='http://search.cpan.org/dist/libnet/'>Net::SMTP</a> or <a href='http://search.cpan.org/dist/Mail-Sender/'>Mail::Sender</a> Perl modules. To enable authentication, Net::SMTP requires <a href='http://search.cpan.org/dist/Authen-SASL/'>Authen::SASL</a>. If the default SMTP authentication mechanism of Mail::Sender doesn't work, you can specify a different one with the <var>$cfg-&gt;{esmtpAuthMech}</var> option.</p>
 
-<p>To test which authentication methods an email server supports, use a command like the following:</p>
+<p>To enable SSL/TLS, both Net::SMTP and Mail::Sender require <a href='http://search.cpan.org/dist/IO-Socket-SSL/'>IO::Socket::SSL</a> and <a href='http://search.cpan.org/dist/Net-SSLeay/'>Net::SSLeay</a>. Net::SMTP also requires <a href='http://search.cpan.org/dist/Net-SMTPS/'>Net::SMTPS</a>.</p>
 
-<pre><kbd>
-shell&gt; perl -MMail::Sender -e "Mail::Sender-&gt;printAuthProtocols('smtp.example.com')"
-</kbd><samp>
-smtp.example.com supports: PLAIN, LOGIN, CRAM-MD5
-</samp></pre>
-
-
-<p>To enable authentication if the requirements are fulfilled, set the <var>mailer</var> option to the correct value and also configure the additional <var>estmp…</var> forum options.</p>
+<p> If the default SMTP port of 25 doesn't work, you can configure it with the <var>$cfg-&gt;{smtpPort}</var> option, usually to <code>465</code> or <code>587</code>.</p>
 
 
 <h2 id='bounces'>Bounced Emails</h2>
@@ -784,18 +786,18 @@ smtp.example.com supports: PLAIN, LOGIN, CRAM-MD5
 <li>Every day during the cronjob run, users' bounce counters are decremented. If the treshold for disabling email sending is reached, email sending to that user is re-enabled. Every received bounce internally counts as 3, whereas the daily decrement is by 1.</li>
 </ol>
 
-<p>The POP3 part of the code requires the <a href='http://search.cpan.org/dist/Mail-POP3Client/'>Mail::POP3Client</a> Perl module and is located in cron_bounce.pl. It needs to be installed similarly to the main cronjob. If you get a huge amount of bounces, you could run the script more than once daily.</p>
+<p>The POP3 part of the code requires the <a href='http://search.cpan.org/dist/Mail-POP3Client/'>Mail::POP3Client</a> Perl module and is located in cron_bounce.pl. It needs to be installed similarly to the main cronjob.</p>
 
-<p>If the POP3 account is on a remote host and you want to protect the password, you can use password hashing via APOP or CRAM-MD5. Set the <var>bouncePopAuth</var> option to the respective value (if supported by the POP3 server). Or you can use SSL, which is activated via the <var>bouncePopSsl</var> option. CRAM-MD5 requires <a href='http://search.cpan.org/dist/Digest-HMAC/'>Digest::HMAC_MD5</a> and SSL requires <a href='http://search.cpan.org/dist/IO-Socket-SSL/'>IO::Socket::SSL</a>.</p>
+<p>If the POP3 account is on a remote host and you want to protect the password, you can use password hashing via APOP or CRAM-MD5. Set the <var>$cfg-&gt;{bouncePopAuth}</var> option to the value supported by the POP3 server. CRAM-MD5 requires <a href='http://search.cpan.org/dist/Digest-HMAC/'>Digest::HMAC_MD5</a>. Or you can use SSL/TLS, which is activated via the <var>bouncePopSsl</var> option. SSL/TLS requires <a href='http://search.cpan.org/dist/IO-Socket-SSL/'>IO::Socket::SSL</a> and <a href='http://search.cpan.org/dist/Net-SSLeay/'>Net::SSLeay</a>.</p>
 
-<p>If you have problems with POP3, you can enable debug output by setting the <var>bouncePopDbg</var> option and then start cron_bounce.pl from the command line. Finally, you can set the POP3 port and timeout values with the <var>bouncePopPort</var> option and the <var>bouncePopTout</var> option, respectively.</p>
+<p>If you have problems with POP3, you can enable debug output by setting the <var>$cfg-&gt;{bouncePopDbg}</var> option to <code>1</code> and then start cron_bounce.pl from the command line. Finally, you can set the POP3 port and timeout values with the <var>$cfg-&gt;{bouncePopPort}</var> and <var>$cfg-&gt;{bouncePopTout}</var> options, respectively.</p>
 
-<p>Bounces usually go back to the address specified in the Return-Path header field, not the From header field. If you use the SMTP/ESMTP mailers, both headers should be the same, but if you use the sendmail mailer, you might have to add an <kbd>-f</kbd> parameter to <var>$cfg-&gt;{sendmail}</var> so that it looks something like "<code>/usr/sbin/sendmail -oi -oeq -t -f bounce\@example.com</code>". This might not work everywhere.</p>
+<p>Bounces usually go back to the address specified in the Return-Path header field, not the From header field. If you use any of the SMTP mailers, both headers should be the same, but if you use the sendmail mailer, you might have to add an <kbd>-f</kbd> parameter to <var>$cfg-&gt;{sendmail}</var> so that it looks something like "<code>/usr/sbin/sendmail -oi -oeq -t -f bounce\@example.com</code>". This might not work everywhere.</p>
 
 
 <h2 id='openpgp'>OpenPGP Emails</h2>
 
-<p>With this feature you can sign all outgoing emails in Inline-PGP format via GnuPG, and users can optionally upload their public keys to encrypt them, too. This text assumes that you're familiar with <a href='http://www.ietf.org/rfc/rfc4880.txt'>(Open)PGP</a> and <a href='http://gnupg.org/'>GnuPG</a>.</p>
+<p>With this feature users can upload their public keys to have their forum emails encrypted and signed. This text assumes that you're familiar with <a href='http://www.ietf.org/rfc/rfc4880.txt'>(Open)PGP</a> and <a href='http://gnupg.org/'>GnuPG</a>.</p>
 
 <h3>Installation</h3>
 
@@ -1200,7 +1202,7 @@ $cfg-&gt;{captchaTtf} = "/usr/local/share/ttf/VeraBd.ttf";
 
 <p>The fanciest captcha implementation uses the <a href='http://www.google.com/recaptcha'>reCAPTCHA</a> web service by Google. It provides warped text images that should be hard to crack, as well as alternative audio captchas. By using it, you also help digitizing old books. Check out their site for details and terms of service.</p> 
 
-<p>To make this work in mwForum, you need to have the <a href='http://search.cpan.org/dist/libwww-perl/'>LWP::UserAgent</a> Perl modules (aka libwww-perl) and their dependencies installed. You also need a Google account and put the public and private keys you get from the linked site into your MwfConfig.pm:</p>
+<p>To make this work in mwForum, you need to have the <a href='http://search.cpan.org/dist/HTTP-Tiny/'>HTTP::Tiny</a> (included with Perl 5.14 and later) or <a href='http://search.cpan.org/dist/libwww-perl/'>LWP::UserAgent</a> (aka libwww-perl, and its many dependencies) Perl modules installed. You also need a Google account and put the public and private keys you get from the linked site into your MwfConfig.pm:</p>
 
 <pre><code>
 $cfg-&gt;{reCapPubKey} = '01234567890abcdef';
@@ -1363,7 +1365,7 @@ RewriteRule ^/mwf/v\d+/(.+)  /mwf/$1
 
 <p>Admins and board moderators can transfer remote images embedded with the <code>[img]</code> tag to a post attachment by Ctrl-Clicking the image. The "<code>[img]http://example.org/example.png[/img]</code>" markup will be changed to "<code>[img thb]example.png[/img]</code>", so the image will be shown in the same place in the post, and as a thumbnail if possible. Users of this feature need to keep legal issues in mind.</p>
 
-<p>Post attachments need to be set up of course. The <var>$cfg-&gt{maxAttachLen}</var> forum option is enforced, but can be overriden with <var>$cfg-&gt{maxAttXferLen}</var>. The feature requires either the LWP (libwww-perl) set of Perl modules, or the Wget application installed. If an installed LWP should not be used (e.g. to save memory under mod_perl), <var>$cfg-&gt;{noLWP}</var> can be set to <code>1</code>. If Wget isn't located in /usr/bin/wget, its path can be set with <var>$cfg-&gt;{wgetBinary}</var>.</p>
+<p>Post attachments need to be set up of course. The <var>$cfg-&gt{maxAttachLen}</var> forum option is enforced, but can be overriden with <var>$cfg-&gt{maxAttXferLen}</var>. The feature requires either the <a href='http://search.cpan.org/dist/HTTP-Tiny/'>HTTP::Tiny</a> (included with Perl 5.14 and later) or <a href='http://search.cpan.org/dist/libwww-perl/'>LWP::UserAgent</a> (aka libwww-perl, and its many dependencies) Perl modules installed. To support SSL/TLS for https URLs, <a href='http://search.cpan.org/dist/IO-Socket-SSL/'>IO::Socket::SSL</a> and <a href='http://search.cpan.org/dist/Net-SSLeay/'>Net::SSLeay</a> are required.</p>
 
 <p>The transfer only works for unlinked images (i.e. not for "<code>[url=http://foo][img]http://bar[/img][/url]</code>"), as linked images will usually be just thumbnails, and because linked attached images don't work in mwForum for technical reasons.</p>
 

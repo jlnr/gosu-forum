@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright © 1999-2013 Markus Wichitill
+#    Copyright © 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@ use utf8;
 use strict;
 use warnings;
 no warnings qw(uninitialized redefine once);
-our $VERSION = "2.27.0";
+our $VERSION = "2.29.5";
 
 #------------------------------------------------------------------------------
 # Print additional HTTP header lines
@@ -74,7 +74,9 @@ sub middle
 	# Load UTF-8-encoded text from file and show on forum page only
 	if ($m->{env}{script} eq 'forum_show') {
 		open my $fh, "<:utf8", "/etc/motd";
-		while (<$fh>) {	print }
+		while (my $line = <$fh>) { 
+			print $line;
+		}
 		close $fh;
 	}
 }

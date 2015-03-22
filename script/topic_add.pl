@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,10 +24,10 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 
 # Load additional modules
-require MwfCaptcha if $cfg->{captcha};
+require MwfCaptcha if $cfg->{captcha} >= 2;
 
 # Get CGI parameters
 my $boardId = $m->paramInt('bid');
@@ -174,10 +174,11 @@ if (!$add || @{$m->{formErrors}}) {
 	$m->printFormErrors();
 
 	# Prepare preview body
+	my $previewPost = undef;
 	if ($preview) {
-		$preview = { body => $body, rawBody => $rawBody };
-		$m->editToDb({}, $preview);
-		$m->dbToDisplay($board, $preview);
+		$previewPost = { body => $body, rawBody => $rawBody };
+		$m->editToDb({}, $previewPost);
+		$m->dbToDisplay($board, $previewPost);
 	}
 
 	# Escape submitted values
@@ -242,7 +243,7 @@ if (!$add || @{$m->{formErrors}}) {
 		"<div class='frm'>\n",
 		"<div class='hcl'><span class='htt'>$lng->{ntpPrvTtl}</span></div>\n",
 		"<div class='ccl'>\n",
-		$preview->{body}, "\n",
+		$previewPost->{body}, "\n",
 		"</div>\n",
 		"</div>\n\n"
 		if $preview;

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 
 # Check if access should be denied
 !$cfg->{userInfoReg} || $userId or $m->error('errNoAccess');
@@ -95,8 +95,12 @@ push @userLinks, { url => $m->url('user_watch', userId => $infUserId),
 push @userLinks, { url => $m->url('forum_search', uid => $infUserId), 
 	txt => 'uifListPst', ico => 'search' }
 	if $cfg->{forumSearch};
-$m->callPlugin($_, links => \@userLinks, user => $infUser)
-	for @{$cfg->{includePlg}{userUserLink}};
+push @userLinks, { url => $m->url('user_activity', uid => $infUserId), 
+	txt => 'uifActiv', ico => 'poll' }
+	if ($cfg->{statForumActiv} || $user->{admin}) && !$m->{sqlite};
+for my $plugin (@{$cfg->{includePlg}{userUserLink}}) {
+	$m->callPlugin($plugin, links => \@userLinks, user => $infUser);
+}
 
 # Admin button links
 my @adminLinks = ();
@@ -120,8 +124,9 @@ if ($user->{admin}) {
 		txt => "Wipe", ico => 'wipe' };
 	push @adminLinks, { url => $m->url('user_confirm', uid => $infUserId, script => 'user_delete',
 		name => $infUser->{userName}), txt => "Delete", ico => 'delete' };
-	$m->callPlugin($_, links => \@userLinks, user => $infUser)
-		for @{$cfg->{includePlg}{userAdminLink}};
+	for my $plugin (@{$cfg->{includePlg}{userAdminLink}}) {
+		$m->callPlugin($plugin, links => \@userLinks, user => $infUser);
+	}
 }
 
 # Print page bar
@@ -307,7 +312,9 @@ if ($infUser->{blurb}) {
 print "</table>\n\n";
 
 # Call user info include plugin
-$m->callPlugin($_, user => $infUser) for @{$cfg->{includePlg}{userInfo}};
+for my $plugin (@{$cfg->{includePlg}{userInfo}}) {
+	$m->callPlugin($plugin, user => $infUser);
+}
 
 # Google map
 if ($cfg->{userInfoMap} && ($infUser->{location} || $geoLocation)) {
@@ -321,8 +328,8 @@ if ($cfg->{userInfoMap} && ($infUser->{location} || $geoLocation)) {
 		"<div id='map' style='width: 98%; height: 350px; max-width: 600px'></div>\n",
 		"</div>\n",
 		"</div>\n\n",
-		"<script src='//maps.googleapis.com/maps/api/js?v=3&amp;sensor=false'>",
-		"</script>\n\n";
+		"<script src='//maps.googleapis.com/maps/api/js?v=3&amp;sensor=false'></script>\n",
+		"<script src='$cfg->{dataPath}/google.js'></script>\n\n";
 }
 
 # Print public user stats	

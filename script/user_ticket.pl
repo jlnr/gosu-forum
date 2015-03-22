@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,17 +24,15 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 
 # Get CGI parameters
 my $ticketId = $m->paramStr('t');
 
 # Get ticket
-my $cs = 'BINARY';
-if ($m->{pgsql}) { $cs = 'TEXT' }
-elsif ($m->{sqlite}) { $cs = 'BLOB' }
+my $caseSensitive = $m->{mysql} ? 'BINARY' : 'TEXT';
 my $ticket = $m->fetchHash("
-	SELECT * FROM tickets WHERE id = CAST(? AS $cs) AND issueTime > ? - 2 * 86400", 
+	SELECT * FROM tickets WHERE id = CAST(? AS $caseSensitive) AND issueTime > ? - 2 * 86400", 
 	$ticketId, $m->{now});
 $ticket or $m->error('errTktNotFnd');
 

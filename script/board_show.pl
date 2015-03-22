@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 
 # Get CGI parameters
 my $boardId = $m->paramStr('bid');  # int() later
@@ -167,8 +167,9 @@ if (!$m->{archive}) {
 	push @userLinks, { url => $m->url('forum_overview', act => 'unread', bid => $boardId), 
 		txt => 'comShowUnr', ico => 'showunread' }
 		if $userId && $unreadPostsExist;
-	$m->callPlugin($_, links => \@userLinks, board => $board)
-		for @{$cfg->{includePlg}{boardUserLink}};
+	for my $plugin (@{$cfg->{includePlg}{boardUserLink}}) {
+		$m->callPlugin($plugin, links => \@userLinks, board => $board);
+	}
 }
 
 # Admin button links

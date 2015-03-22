@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 
 # Get CGI parameters
 $m->{ajax} = $m->paramBool('ajax');
@@ -151,7 +151,9 @@ if ($submitted) {
 			# Delete all attachments
 			my $attachments = $m->fetchAllArray("
 				SELECT id FROM attachments WHERE postId = ?", $postId);
-			$m->deleteAttachment($_->[0]) for @$attachments;
+			for my $attachment (@$attachments) {
+				$m->deleteAttachment($attachment->[0]);
+			}
 	
 			# Log action and finish
 			$m->logAction(1, 'post', 'attdlall', $userId, $boardId, $topicId, $postId);
@@ -227,6 +229,7 @@ elsif (!$submitted || @{$m->{formErrors}}) {
 	# Prepare values
 	my $sizeStr = $m->formatSize($cfg->{maxAttachLen});
 	my $label = $m->formatStr($lng->{attUplFiles}, { size => $sizeStr });
+	my $embedChk = $cfg->{attachImgDef} ? 'checked' : "";
 
 	# Print attachment form
 	print	
@@ -243,7 +246,7 @@ elsif (!$submitted || @{$m->{formErrors}}) {
 		
 	print	
 		"<fieldset>\n",
-		"<label><input type='checkbox' name='embed'>$lng->{attUplEmbed}</label>\n",
+		"<label><input type='checkbox' name='embed' $embedChk>$lng->{attUplEmbed}</label>\n",
 		"</fieldset>\n"
 		if $cfg->{attachImg};
 	
@@ -269,8 +272,8 @@ elsif (!$submitted || @{$m->{formErrors}}) {
 		my $attUrl = "$cfg->{attachUrlPath}/$postIdMod/$postId/$fileName";
 		my $imgShowUrl = $m->url('attach_show', aid => $attach->{id});
 		my $caption = $attach->{caption};
-		my $embedChk = $attach->{webImage} == 2 ? 'checked' : "";
 		my $sizeStr = $m->formatSize(-s $m->encFsPath($attFile));
+		$embedChk = $attach->{webImage} == 2 ? 'checked' : "";
 		if ($cfg->{attachImg} && $attach->{webImage} == 2 && $user->{showImages}) {
 			my $thbFile = $attFile;
 			my $thbUrl = $attUrl;

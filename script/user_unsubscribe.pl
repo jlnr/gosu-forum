@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,27 +24,27 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 
 # Get CGI parameters
 my $auth = $m->paramStr('t');
 
 # Unsubscribe
-my $cs = 'BINARY';
-if ($m->{pgsql}) { $cs = 'TEXT' }
-elsif ($m->{sqlite}) { $cs = 'BLOB' }
+my $caseSensitive = $m->{mysql} ? 'BINARY' : 'TEXT';
 my ($boardUserId, $boardId) = $m->fetchArray("
-	SELECT userId, boardId FROM boardSubscriptions WHERE unsubAuth = CAST(? AS $cs)", $auth);
+	SELECT userId, boardId FROM boardSubscriptions WHERE unsubAuth = CAST(? AS $caseSensitive)", 
+	$auth);
 my ($topicUserId, $topicId) = $m->fetchArray("
-	SELECT userId, topicId FROM topicSubscriptions WHERE unsubAuth = CAST(? AS $cs)", $auth);
+	SELECT userId, topicId FROM topicSubscriptions WHERE unsubAuth = CAST(? AS $caseSensitive)", 
+	$auth);
 if ($boardUserId) {
 	$m->dbDo("
-		DELETE FROM boardSubscriptions WHERE userId = ? AND unsubAuth = CAST(? AS $cs)",
+		DELETE FROM boardSubscriptions WHERE userId = ? AND unsubAuth = CAST(? AS $caseSensitive)",
 		$boardUserId, $auth);
 }
 elsif ($topicUserId) {
 	$m->dbDo("
-		DELETE FROM topicSubscriptions WHERE userId = ? AND unsubAuth = CAST(? AS $cs)",
+		DELETE FROM topicSubscriptions WHERE userId = ? AND unsubAuth = CAST(? AS $caseSensitive)",
 		$topicUserId, $auth);
 }
 else {

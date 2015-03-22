@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -66,13 +66,11 @@ for my $email (@emails) {
 	$auth or $m->logAction(3, 'bounce', 'noauth'), next;
 
 	# Get user with auth value
-	my $cs = 'BINARY';
-	if ($m->{pgsql}) { $cs = 'TEXT' }
-	elsif ($m->{sqlite}) { $cs = 'BLOB' }
+	my $caseSensitive = $m->{mysql} ? 'BINARY' : 'TEXT';
 	my $authUser = $m->fetchHash("
 		SELECT id, bounceNum, dontEmail, regTime, lastOnTime 
 		FROM users 
-		WHERE bounceAuth = CAST(? AS $cs)", 
+		WHERE bounceAuth = CAST(? AS $caseSensitive)", 
 		$auth);
 	$authUser or $m->logAction(2, 'bounce', 'nouser'), next;
 	my $authUserId = $authUser->{id};

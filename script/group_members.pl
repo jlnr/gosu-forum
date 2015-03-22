@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_, autocomplete => 1);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0], autocomplete => 1);
 
 # Get CGI parameters
 my $groupId = $m->paramInt('gid');
@@ -55,6 +55,7 @@ if ($submitted) {
 		if ($userNames) {
 			my @userNames = split(/\s*[;,]\s*/, $userNames);
 			@userNames or $m->formError('errUsrNotFnd');
+			$userNames = join("; ", @userNames);
 			for my $name (@userNames) {
 				if (substr($name, 0, 1) eq '!') {
 					my @ids = $m->getMemberIds($name);
@@ -67,7 +68,6 @@ if ($submitted) {
 					if ($id) { push @userIds, $id }
 					else { $m->formError("$name: $lng->{errUsrNotFnd}") }
 				}
-				$userNames = join("; ", @userNames);
 			}
 		}
 

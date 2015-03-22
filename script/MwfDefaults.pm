@@ -1,6 +1,6 @@
 #-----------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 package MwfDefaults;
 use strict;
 use warnings;
-our $VERSION = "2.29.1";
+our $VERSION = "2.29.4";
 
 #-----------------------------------------------------------------------------
 # Configuration option defaults. Don't change.
@@ -30,10 +30,11 @@ our $options = [
 	name     => 'mailer',
 	type     => 'radio',
 	title    => "Email transport",
+	help     => "See FAQ.html for SMTP authentication and SSL/TLS details.",
 	radio    => [
-		SMTP     => "Use SMTP server (with MwfSendmail)",
-		SMTP2    => "Use SMTP server (with Net::SMTP)",
-		ESMTP    => "Use SMTP server with authentication (with Mail::Sender, see FAQ.html)",
+		SMTP     => "Use SMTP server via MwfSendmail",
+		SMTP2    => "Use SMTP server via Net::SMTP (authentication and SSL supported)",
+		ESMTP    => "Use SMTP server via Mail::Sender (authentication and SSL supported)",
 		sendmail => "Use sendmail command (path and options can be set in MwfConfig.pm)",
 		mail     => "Use mail command (that parses headers from mail)",
 		mailx    => "Use mailx command (lacks sender and MIME headers)",
@@ -45,36 +46,22 @@ our $options = [
 	type     => 'text',
 	title    => "Sender address of emails sent by forum software",
 	help     => "Should be a valid address, even if nobody reads the received emails.",
-	example  => [ "bounce\@example.com" ],
-	default  => "",
-},
-{
-	name     => 'adminEmail',
-	type     => 'text',
-	title    => "Main administrator's email address",
-	help     => "Is displayed on the forum info page and can be obfuscated or empty if you don't want spambots to collect the address.",
-	example  => [ "webmaster\@example.com", "webmaster at example company" ],
+	example  => [ "noreply\@example.com" ],
 	default  => "",
 },
 {
 	name     => 'smtpServer',
 	type     => 'text',
 	title    => "SMTP email server host",
-	help     => "Only used with SMTP mailer.",
+	help     => "Only used with SMTP.",
 	example  => [ "localhost", "mail.example.com" ],
 	default  => "localhost",
-},
-{
-	name     => 'esmtpAuth',
-	type     => 'text',
-	title    => "SMTP authentication method",
-	help     => "Only used with SMTP mailer when authentication is required. See FAQ.html for details.",
-	default  => "LOGIN",
 },
 {
 	name     => 'esmtpUser',
 	type     => 'text',
 	title    => "SMTP authentication user",
+	help     => "Only used with Net::SMTP and Mail::Sender when authentication is required. See FAQ.html for details.",
 	default  => "",
 },
 {
@@ -303,22 +290,30 @@ our $options = [
 	name     => 'statUserAgent',
 	type     => 'checkbox',
 	title    => "Enable user agent statistics page for everybody?",
-	help     => "Uses the <a href='http://code.google.com/apis/chart/'>Google Chart API</a> (<a href='http://code.google.com/apis/chart/terms.html'>Terms of Use</a>) to generate chart images by default.",
+	help     => "Uses the <a href='https://developers.google.com/chart/'>Google Chart API</a> (<a href='https://developers.google.com/chart/terms'>Terms of Use</a>) to generate pie charts by default. See <var>uaGraphType</var> in FAQ.html for alternatives.",
 	default  => 1,
 },
 {
 	name     => 'statUserCntry',
 	type     => 'checkbox',
 	title    => "Enable user country statistics page for everybody?",
-	help     => "Uses the <a href='http://code.google.com/apis/chart/'>Google Chart API</a> (<a href='http://code.google.com/apis/chart/terms.html'>Terms of Use</a>) to generate map image. Requires GeoIP, see FAQ.html for details.",
+	help     => "Uses the <a href='https://developers.google.com/chart/'>Google Chart API</a> (<a href='https://developers.google.com/chart/terms'>Terms of Use</a>) to generate map image. Requires GeoIP, see FAQ.html for details.",
 	default  => 0,
 },
 {
 	name     => 'statForumActiv',
 	type     => 'checkbox',
-	title    => "Enable forum activity statistics page for everybody?",
+	title    => "Enable forum and user activity statistics pages for everybody?",
 	help     => "Can be rather slow in big forums.",
 	default  => 0,
+},
+{
+	name     => 'adminEmail',
+	type     => 'text',
+	title    => "Main administrator's email address",
+	help     => "Only displayed on the forum info page. Can be obfuscated or empty if you don't want spambots to collect the address.",
+	example  => [ "webmaster\@example.com", "webmaster at example company" ],
+	default  => "",
 },
 {
 	section  => "User Display Options",
@@ -1101,49 +1096,25 @@ our $options = [
 {
 	name     => 'bouncePopHost',
 	type     => 'text',
-	title    => "POP3 account host",
+	title    => "POP3 host",
 	default  => "localhost",
 },
 {
 	name     => 'bouncePopUser',
 	type     => 'text',
-	title    => "POP3 account username",
+	title    => "POP3 username",
 	default  => "",
 },
 {
 	name     => 'bouncePopPwd',
 	type     => 'text',
-	title    => "POP3 account password",
-	default  => "",
-},
-{
-	name     => 'bouncePopAuth',
-	type     => 'text',
-	title    => "POP3 authentication method",
-	default  => "BEST",
-},
-{
-	name     => 'bouncePopPort',
-	type     => 'text',
-	title    => "POP3 port number",
-	default  => "",
-},
-{
-	name     => 'bouncePopTout',
-	type     => 'text',
-	title    => "POP3 timeout in seconds",
+	title    => "POP3 password",
 	default  => "",
 },
 {
 	name     => 'bouncePopSsl',
 	type     => 'checkbox',
-	title    => "Enable POP3 via SSL",
-	default  => 0,
-},
-{
-	name     => 'bouncePopDbg',
-	type     => 'checkbox',
-	title    => "Enable POP3 debug logging to stderr",
+	title    => "Enable POP3 via SSL/TLS",
 	default  => 0,
 },
 {
@@ -1239,7 +1210,7 @@ our $options = [
 	name     => 'blockExtSearch',
 	type     => 'checkbox',
 	title    => "Block forum searches not coming from the built-in search form?",
-	help     => "It can be rather expensive if URLs like \"forum_search.pl?words=blah\" get posted somewhere and tons of people and bots visit them, performing the search all the time. Can only block searches from external POST forms if forum search is limited to registered users above.",
+	help     => "If URLs like \"forum_search.pl?words=blah\" get posted somewhere and lots of people and bots visit them, executing the search every time, it can cause a lot of work for the server. Can't block external searches through POST forms and links including page numbers.",
 	default  => 0,
 },
 {
@@ -1401,14 +1372,14 @@ our $options = [
 	name     => 'captchaMethod',
 	type     => 'radio',
 	title    => "Which built-in captcha implementation should be used?",
-	help     => "Use first or second implementation if you can't install additional Perl modules. If a non-standard MwfCaptcha.pm module is installed, this selection has no effect.",
+	help     => "Use first or second implementation if you can't install additional Perl modules. If a non-standard MwfCaptcha.pm module is installed, this selection has no effect. See FAQ.html for details.",
 	radio    => [
 		0 => "Invisible honeypot field",
-		1 => "Question &amp; answer (see FAQ.html for details)",
-		2 => "GD::SecurityImage (see FAQ.html for details)",
-		3 => "reCAPTCHA.net service (see FAQ.html for details)",
-		4 => "Akismet service (see FAQ.html for details)",
-		5 => "DNSBL service (see FAQ.html for details)",
+		1 => "Question &amp; answer",
+		2 => "GD::SecurityImage",
+		3 => "reCAPTCHA service",
+		4 => "Akismet service",
+		5 => "DNSBL service",
 	],
 	default  => 0,
 },

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -57,7 +57,9 @@ for my $board (@$boards) {
 		ORDER BY posts.topicId, posts.postTime",
 		{ lastSentTime => $lastSentTime, boardId => $board->{id} });
 	next if !@$posts;
-	$m->dbToEmail({}, $_) for @$posts;
+	for my $post (@$posts) {
+		$m->dbToEmail({}, $post);
+	}
 	my $boardTitleDeesc = $m->deescHtml($board->{title});
 
 	# Get subscribers
@@ -115,7 +117,9 @@ for my $board (@$boards) {
 			ORDER BY postTime",
 			{ lastSentTime => $lastSentTime, topicId => $topic->{id} });
 		next if !@$posts;
-		$m->dbToEmail({}, $_) for @$posts;
+		for my $post (@$posts) {
+			$m->dbToEmail({}, $post);
+		}
 		my $boardTitleDeesc = $m->deescHtml($board->{title});
 	
 		# Get recipients

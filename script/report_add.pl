@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_, autocomplete => 1);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0], autocomplete => 1);
 
 # Check if access should be denied
 $userId or $m->error('errNoAccess');
@@ -90,17 +90,19 @@ if ($submitted) {
 				# Send notification email
 				my $pingUser = $m->getUser($pingUserId);
 				if ($email && $pingUser->{email} && !$pingUser->{dontEmail}) {
-					$m->dbToEmail({}, $post);
+					my $emailPost = { subject => $topic->{subject},
+						body => $post->{body}, rawBody => $post->{rawBody} };
+					$m->dbToEmail({}, $emailPost);
 					$lng = $m->setLanguage($pingUser->{language});
-					my $subject = "$lng->{arpPngMlSbPf} $user->{userName}: $topic->{subject}";
+					my $subject = "$lng->{arpPngMlSbPf} $user->{userName}: $emailPost->{subject}";
 					my $body = $lng->{arpPngMlT} . "\n\n" . "-" x 70 . "\n\n"
 						. $lng->{subLink} . "$cfg->{baseUrl}$m->{env}{scriptUrlPath}/$url\n"
 						. $lng->{subBoard} . $board->{title} . "\n"
-						. $lng->{subTopic} . $topic->{subject} . "\n"
+						. $lng->{subTopic} . $emailPost->{subject} . "\n"
 						. $lng->{subBy} . $post->{userNameBak} . "\n"
 						. $lng->{subOn} . $m->formatTime($post->{postTime}, $pingUser->{timezone}) . "\n\n"
-						. $post->{body} . "\n\n"
-						. ($post->{rawBody} ? $post->{rawBody} . "\n\n" : "")
+						. $emailPost->{body} . "\n\n"
+						. ($emailPost->{rawBody} ? $emailPost->{rawBody} . "\n\n" : "")
 						. "-" x 70 . "\n\n";
 					$lng = $m->setLanguage();
 					$m->sendEmail(user => $pingUser, subject => $subject, body => $body);

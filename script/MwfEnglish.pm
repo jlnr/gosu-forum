@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright © 1999-2013 Markus Wichitill
+#    Copyright © 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 package MwfEnglish;
 use utf8;
 use strict;
-our $VERSION = "2.29.1";
+our $VERSION = "2.29.6";
 our $lng = {};
 
 #------------------------------------------------------------------------------
@@ -147,6 +147,10 @@ $lng->{actTitle}     = "Forum Activity";
 $lng->{actPstDayT}   = "Horizontal axis: one pixel per day, vertical axis: one pixel per post. Only existing posts are counted.";
 $lng->{actPstDayTtl} = "Posts Per Day";
 $lng->{actPstYrTtl}  = "Posts Per Year";
+
+# User activity page
+$lng->{uacTitle}     = "User";
+$lng->{uacPstDayT}   = "Horizontal axis: one pixel per day, vertical axis: three pixels per post. Only existing posts are counted.";
 
 # New/unread overview page
 $lng->{ovwTitleNew}  = "New Posts";
@@ -296,7 +300,7 @@ $lng->{tpcLocked}    = "(locked)";
 # Topic subscription page
 $lng->{tsbTitle}     = "Topic";
 $lng->{tsbSubTtl}    = "Subscribe to Topic";
-$lng->{tsbSubT2}     = "Instant subscriptions send out new posts in the selected topic to you by email instantly. Digest subscriptions send out collected posts regularly (usually daily).";
+$lng->{tsbSubT2}     = "For instant subscriptions, new posts are sent out to you by email instantly. For digest subscriptions, collected posts are sent out regularly (usually daily).";
 $lng->{tsbInstant}   = "Instant subscription";
 $lng->{tsbDigest}    = "Digest subscription";
 $lng->{tsbSubB}      = "Subscribe";
@@ -413,7 +417,9 @@ $lng->{atsNextTT}    = "Go to next attachment";
 # User info page
 $lng->{uifTitle}     = "User";
 $lng->{uifListPst}   = "Posts";
-$lng->{uifListPstTT} = "Show posts by this user";
+$lng->{uifListPstTT} = "Show user&#39;s posts";
+$lng->{uifActiv}     = "Activity";
+$lng->{uifActivTT}   = "Show user&#39;s posts per day and year";
 $lng->{uifMessage}   = "Send Message";
 $lng->{uifMessageTT} = "Send private message to this user";
 $lng->{uifIgnore}    = "Ignore";
@@ -545,7 +551,7 @@ $lng->{uopProfSig}   = "Signature";
 $lng->{uopProfSigLt} = "(max. 100 characters, 2 lines)";
 $lng->{uopProfBlurb} = "Miscellaneous";
 $lng->{uopOptTtl}    = "Options";
-$lng->{uopPrefPrivc} = "Privacy (hide online status and IP-based location, only show info page to reg. users)";
+$lng->{uopPrefPrivc} = "Privacy (hide online status and IP-based location)";
 $lng->{uopPrefNtMsg} = "Receive reply and message notifications by email, too";
 $lng->{uopPrefNt}    = "Receive reply notifications";
 $lng->{uopDispLang}  = "Language";
@@ -1241,9 +1247,8 @@ limited time. After using that link to login, you can set a new password.</p>
 
 <h3>Do I have to logout after a session?</h3>
 
-<p>You only need to logout if you are using a computer that is also used by
-other non-trusted persons. mwForum stores your user ID and password via
-cookies on your computer, and these are removed on logout.</p>
+<p>You only need to logout if you are using a device that is also used by
+other non-trusted persons.</p>
 
 <h3>How do I attach images and other files to posts?</h3>
 

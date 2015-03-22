@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use MwfMain;
 #------------------------------------------------------------------------------
 
 # Init
-my ($m, $cfg, $lng, $user, $userId) = MwfMain->new(@_);
+my ($m, $cfg, $lng, $user, $userId) = MwfMain->new($_[0]);
 $m->cacheUserStatus() if $userId;
 
 # Get CGI parameters
@@ -200,7 +200,9 @@ my $printPost = sub {
 };
 
 # For each board
-BOARD: for (@$boards) { $board = $_;
+BOARD: for my $brd (@$boards) {
+	$board = $brd;
+	
 	# Skip if no access
 	my $boardId = $board->{id};
 	my $boardAdmin = $user->{admin} || $m->boardAdmin($userId, $board->{id});
@@ -247,7 +249,9 @@ BOARD: for (@$boards) { $board = $_;
 	next BOARD if !@$topics;
 
 	# For each topic
-	TOPIC: for (@$topics) {	$topic = $_;
+	TOPIC: for my $tpc (@$topics) {
+		$topic = $tpc;
+		
 		# Get posts
 		my $topicId = $topic->{id};
 		my $apprvStr = $boardAdmin || !$board->{approve} ? "" : "AND posts.approved = 1";
@@ -383,15 +387,17 @@ if ($userId && %topicPrinted) {
 			DELETE FROM topicReadTimes WHERE userId = ? AND topicId = ?", $attr);
 		my $insSth = $m->dbPrepare("
 			INSERT INTO topicReadTimes (userId, topicId, lastReadTime) VALUES (?, ?, ?)", $attr);
-		for (keys %topicPrinted) {
-			$m->dbExecute($delSth, $userId, $_);
-			$m->dbExecute($insSth, $userId, $_, $now);
+		for my $time (keys %topicPrinted) {
+			$m->dbExecute($delSth, $userId, $time);
+			$m->dbExecute($insSth, $userId, $time, $now);
 		}
 	}
 	elsif ($m->{sqlite}) {
 		my $updSth = $m->dbPrepare("
 			REPLACE INTO topicReadTimes (userId, topicId, lastReadTime)	VALUES (?, ?, ?)");
-		$m->dbExecute($updSth, $userId, $_, $now) for keys %topicPrinted;
+		for my $time (keys %topicPrinted) {
+			$m->dbExecute($updSth, $userId, $time, $now);
+		}
 	}
 }
 

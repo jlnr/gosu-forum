@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright © 1999-2013 Markus Wichitill
+#    Copyright © 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 package MwfGerman;
 use utf8;
 use strict;
-our $VERSION = "2.29.1";
+our $VERSION = "2.29.6";
 our $lng = {};
 
 #------------------------------------------------------------------------------
@@ -153,6 +153,10 @@ $lng->{actTitle}     = "Forumsaktivität";
 $lng->{actPstDayT}   = "Horizontale Achse: ein Pixel pro Tag, vertikale Achse: ein Pixel pro Nachricht. Nur existierende Nachrichten werden gezählt.";
 $lng->{actPstDayTtl} = "Nachrichten pro Tag";
 $lng->{actPstYrTtl}  = "Nachrichten pro Jahr";
+
+# User activity page
+$lng->{uacTitle}     = "Benutzer";
+$lng->{uacPstDayT}   = "Horizontale Achse: ein Pixel pro Tag, vertikale Achse: drei Pixel pro Nachricht. Nur existierende Nachrichten werden gezählt.";
 
 # New/unread overview page
 $lng->{ovwTitleNew}  = "Neue Nachrichten";
@@ -304,7 +308,7 @@ $lng->{tpcLocked}    = "(gesperrt)";
 # Topic subscription page
 $lng->{tsbTitle}     = "Thema";
 $lng->{tsbSubTtl}    = "Thema abonnieren";
-$lng->{tsbSubT2}     = "Sofort-Abonnements senden Ihnen neue Nachrichten im gewählten Thema sofort per Email zu. Sammel-Abonnements senden die Nachrichten gesammelt in regelmäßigen Abständen (üblicherweise täglich).";
+$lng->{tsbSubT2}     = "Bei Sofort-Abonnements werden Ihnen neue Nachrichten sofort per Email zugesendet. Bei Sammel-Abonnements werden die Nachrichten gesammelt in regelmäßigen Abständen gesendet (üblicherweise täglich).";
 $lng->{tsbInstant}   = "Sofort-Abonnement";
 $lng->{tsbDigest}    = "Sammel-Abonnement";
 $lng->{tsbSubB}      = "Abonnieren";
@@ -415,6 +419,8 @@ $lng->{attAttChgB}   = "Ändern";
 $lng->{uifTitle}     = "Benutzer";
 $lng->{uifListPst}   = "Nachrichten";
 $lng->{uifListPstTT} = "Öffentliche Nachrichten dieses Benutzers auflisten";
+$lng->{uifActiv}     = "Aktivität";
+$lng->{uifActivTT}   = "Öffentliche Nachrichten dieses Benutzers pro Tag und Jahr zeigen";
 $lng->{uifMessage}   = "Nachricht senden";
 $lng->{uifMessageTT} = "Private Nachricht an diesen Benutzer senden";
 $lng->{uifIgnore}    = "Ignorieren";
@@ -546,7 +552,7 @@ $lng->{uopProfSig}   = "Signatur";
 $lng->{uopProfSigLt} = "(max. 100 Zeichen auf 2 Zeilen)";
 $lng->{uopProfBlurb} = "Sonstiges";
 $lng->{uopOptTtl}    = "Optionen";
-$lng->{uopPrefPrivc} = "Datenschutz (Online-Status und IP-basierte Ortsinfo verstecken, Infoseite nur reg. Benutzern anzeigen)";
+$lng->{uopPrefPrivc} = "Datenschutz (Online-Status und IP-basierte Ortsinfo verstecken)";
 $lng->{uopPrefNtMsg} = "Benachrichtigungen über Antworten und private Nachrichten auch per Email empfangen";
 $lng->{uopPrefNt}    = "Benachrichtigungen über Antworten empfangen";
 $lng->{uopDispLang}  = "Sprache";
@@ -1260,11 +1266,8 @@ können. Danach können Sie dann ein neues Passwort setzen.</p>
 
 <h3>Wann muss man sich abmelden?</h3>
 
-<p>Man braucht sich nur abzumelden, wenn der benutzte Computer auch von nicht
-vertrauenswürdigen Personen benutzt wird. Wie oben geschrieben werden
-Benutzer-ID und Passwort per Cookie auf dem Computer gespeichert. Diese werden
-beim Abmelden entfernt, so dass sie nicht von einer anderen Person missbraucht
-werden können.</p>
+<p>Man braucht sich nur abzumelden, wenn das benutzte Gerät auch von nicht
+vertrauenswürdigen Personen benutzt wird.</p>
 
 <h3>Wie kann man Bilder und andere Dateien an Nachrichten anhängen?</h3>
 

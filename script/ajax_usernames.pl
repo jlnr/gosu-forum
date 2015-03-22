@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -31,10 +31,9 @@ $m->printHttpHeader();
 
 # Get CGI parameters
 my $name = $m->paramStr('q');
-#my $limit = $m->min($m->paramInt('limit') || 10, 10);
 
 # Return empty in case of errors
-$userId or $m->finish();
+$userId || $cfg->{userList} == 1 or $m->finish();
 length($name) >= 2 or $m->finish();
 
 # Fetch names

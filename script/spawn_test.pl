@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
-#    Copyright (c) 1999-2013 Markus Wichitill
+#    Copyright (c) 1999-2015 Markus Wichitill
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -38,8 +38,8 @@ output("mwForum long-running script test running...\n");
 
 # Simulate work
 output("Pretending to do work that takes 20 minutes...\n");
-for (1 .. 20) {
-	output("Sleeping $_...\n");
+for my $minute (1 .. 20) {
+	output("Sleeping $minute...\n");
 	sleep 60;
 }
 
