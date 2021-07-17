@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -I .
 #------------------------------------------------------------------------------
 #    mwForum - Web-based discussion forum
 #    Copyright (c) 1999-2015 Markus Wichitill

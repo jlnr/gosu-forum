@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -I .
 # vim:ts=4:sw=4
 
 package Text::Flowed;
